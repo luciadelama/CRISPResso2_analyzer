@@ -1,0 +1,9 @@
+# Shiny framework
+shiny>=1.1,<2
+
+# Data manipulation
+pandas>=2.2
+numpy>=1.26
+
+# Plotting
+matplotlib>=3.8
