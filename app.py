@@ -70,12 +70,19 @@ app_ui = ui.page_fluid(
     ),
 
     ui.layout_columns(
-        ui.card(
-            ui.card_header("Frame shift %"),
-            ui.output_plot("plot_frameshift"),
+        ui.layout_columns(
+            ui.card(
+                ui.card_header("Frameshift% Plot"),
+                ui.output_plot("plot_frameshift"),
+            ),
+            ui.card(
+                ui.card_header("Indels% Plot"),
+                ui.output_plot("plot_indels"),
+            ),
+            col_widths=[12, 12],
         ),
         ui.card(
-            ui.card_header("Sensitivity"),
+            ui.card_header("Sensitivity Plot"),
             ui.output_plot("plot_sensitivity"),
         ),
         col_widths=[6, 6]
@@ -345,6 +352,16 @@ def server(input, output, session):
         order_base = list(pd.unique(d["Treatment"])) if "Treatment" in d.columns else []
         order = _current_treatment_order(order_base) if order_base else []
         return plots.make_frameshift_plot(d, treat_order=order)
+    
+    @output
+    @render.plot
+    def plot_indels():
+        d = df_selected()
+        if d.empty:
+            return None
+        order_base = list(pd.unique(d["Treatment"])) if "Treatment" in d.columns else []
+        order = _current_treatment_order(order_base) if order_base else []
+        return plots.make_indels_plot(d, treat_order=order)
 
     @output
     @render.plot
