@@ -95,26 +95,60 @@ def _get_frame_reads(filename, total_reads):
         "coding_seq": coding_seq
     }
 
+def longest_common_substring(s1: str, s2: str):
+    """
+    Returns both the longest common substring between 
+    two strings and its length.
+    """
+    s1 = s1.upper()
+    s2 = s2.upper()
+    lcs_length_max = 0
+    lcs_result = ""
+
+    for i in range(len(s1)):
+        for j in range(i + 1, len(s1) + 1):
+            substring = s1[i:j]
+            if substring in s2:
+                current_length = len(substring)
+                if current_length > lcs_length_max:
+                    lcs_length_max = current_length
+                    lcs_result = substring
+    
+    return lcs_result, lcs_length_max
+
 def _get_mut_wt_reads(filename, wt_seq, mut_seq, amplicon, total_reads):
     """Reads a tab-separated file and calculates mutated and wild-type read counts and percentages."""
 
     wt_reads = None
     mut_reads = None
+    max_lcs_wt = -1
+    max_lcs_mut = -1
 
     with open(filename, 'r') as infile:
-        for line in infile:
+        for i, line in enumerate(infile):
+            if i >= 100:
+                break # Limit to first 100 lines for performance
+
+            if i == 0:
+                continue  # Skip header
+
             parts = line.strip().split('\t')
+            
             aligned_seq = parts[0]
             ref_seq = parts[1]
+            reads = int(parts[6])
 
-            if wt_reads is None and re.search(aligned_seq, wt_seq) and re.search(ref_seq, amplicon):
-                wt_reads = int(parts[6])
-            
-            elif mut_reads is None and re.search(aligned_seq, mut_seq) and re.search(ref_seq, amplicon):
-                mut_reads = int(parts[6])
+            lcs_wt, length_wt = longest_common_substring(aligned_seq, wt_seq)
+            lcs_mut, length_mut = longest_common_substring(aligned_seq, mut_seq)
 
-            if wt_reads is not None and mut_reads is not None:
-                break
+            if ref_seq in amplicon:
+                if length_wt > max_lcs_wt:
+                    wt_reads = reads
+                    max_lcs_wt = length_wt
+
+                if length_mut > max_lcs_mut:
+                    mut_reads = reads
+                    max_lcs_mut = length_mut
 
     mut_percent = round(mut_reads/total_reads * 100, 2)
     wt_percent = round(wt_reads/total_reads * 100, 2)
@@ -127,7 +161,3 @@ def _get_mut_wt_reads(filename, wt_seq, mut_seq, amplicon, total_reads):
         "wt_percent": wt_percent,
         "mut_wt_percent": mut_wt_percent,
     }
-
-# def _get_sensitivity(num_value, denom_value):
-    sensitivity_value = num_value/denom_value
-    return sensitivity_value

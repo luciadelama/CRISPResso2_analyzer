@@ -11,7 +11,7 @@ from modules import plots
 
 # ===================== UI =====================
 app_ui = ui.page_fluid(
-    ui.h2("CRISPResso Results Analyzer"),
+    ui.h2("CRISPResso2 Analyzer"),
 
     ui.layout_columns(
         ui.card(
@@ -238,7 +238,6 @@ def server(input, output, session):
 
         out = pd.concat(frames, ignore_index=True)
 
-        # Si quieres mantener "Replicate" como primera columna, mapea "Sample" -> "Replicate" si hace falta:
         if "Replicate" not in out.columns and "Sample" in out.columns:
             out.insert(0, "Replicate", out["Sample"])
 
