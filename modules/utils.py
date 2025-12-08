@@ -224,13 +224,3 @@ def build_dfs_by_replicate(out_root, samples, wt_seq, mut_seq, amplicon_seq, ref
             df = df.drop(columns=["ReportPath"])
         dfs[rep] = df
     return dfs
-
-# def concat_selected(dfs_by_replicate, selected):
-    """Concatena DataFrames de las réplicas seleccionadas."""
-    frames = []
-    for r in selected:
-        if r in dfs_by_replicate and not dfs_by_replicate[r].empty:
-            frames.append(dfs_by_replicate[r])
-    if not frames:
-        return pd.DataFrame()
-    return pd.concat(frames, ignore_index=True)

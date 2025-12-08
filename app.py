@@ -64,6 +64,7 @@ app_ui = ui.page_fluid(
     ui.layout_columns(
         ui.card(
             ui.card_header("Results table"),
+            ui.output_ui("download_ui"),
             ui.output_ui("tabla_dataframe"),
         ),
         col_widths=[12]
@@ -285,10 +286,19 @@ def server(input, output, session):
     @output
     @render.ui
     def tabla_dataframe():
+        # thresholds for highlighting
+        threshold = {
+            "Total Reads": 1000,
+            "MUT%": 1.00,
+            "Indel%": 20,
+        }
+
         d = df_selected()
         if d.empty:
             return ui.HTML("<div class='alert alert-info'>No data</div>")
         d_fmt = d.copy()
+
+        # Order treatments and replicates
         order_base = list(pd.unique(d_fmt["Treatment"])) if "Treatment" in d_fmt.columns else []
         order = _current_treatment_order(order_base) if order_base else []
         if "Treatment" in d_fmt.columns and order:
@@ -298,19 +308,75 @@ def server(input, output, session):
             d_fmt["Replicate"] = pd.Categorical(d_fmt["Replicate"], categories=reps_order, ordered=True)
         if "Replicate" in d_fmt.columns and "Treatment" in d_fmt.columns:
             d_fmt = d_fmt.sort_values(["Replicate", "Treatment"], kind="mergesort")
+        
+        # Columns to format: % in the name and numeric columns
         percent_cols = [c for c in d_fmt.columns if "%" in str(c)]
-        for c in percent_cols:
-            if pd.api.types.is_numeric_dtype(d_fmt[c]):
-                d_fmt[c] = d_fmt[c].map(lambda x: ("" if pd.isna(x) else f"{x}%"))
         center_cols = set(percent_cols)
         for c in d_fmt.columns:
             if pd.api.types.is_numeric_dtype(d_fmt[c]):
                 center_cols.add(c)
-        for c in center_cols:
-            d_fmt[c] = d_fmt[c].map(lambda x: ("" if pd.isna(x) else f"<span class='cell-center'>{x}</span>"))
-        style = "<style>.table thead th { text-align:center; } .cell-center{display:block;text-align:center;}</style>"
-        html = d_fmt.to_html(escape=False, index=False, classes=["table","table-striped","table-hover","table-sm"]) 
+
+        def format_cell(val, col):
+            if pd.isna(val):
+                return ""
+            text = val
+
+            # add % sign for percent columns
+            if col in percent_cols and isinstance(val, (int, float)):
+                text = f"{val}%"
+
+            # decide if we highlight
+            highlight_class = ""
+            th = threshold.get(col, None)
+            if th is not None:
+                try:
+                    v_float = float(val)
+                    if v_float < th:
+                        highlight_class = " cell-low"
+                except (TypeError, ValueError):
+                    pass
+
+            # center if needed
+            if col in center_cols:
+                return f"<span class='cell-center{highlight_class}'>{text}</span>"
+            else:
+                return f"<span class='{highlight_class.strip()}'>{text}</span>"
+
+        # Apply formatting column-wise
+        for c in d_fmt.columns:
+            d_fmt[c] = d_fmt[c].map(lambda x, col=c: format_cell(x, col))
+
+        # Build CSS style and HTML table
+        style = """
+        <style>
+            .table thead th { text-align:center; }
+            .cell-center { display:block; text-align:center; }
+            .cell-low { background-color: #f8d7da; }  /* light red */
+        </style>
+        """
+        html = d_fmt.to_html(
+            escape=False,
+            index=False,
+            classes=["table","table-striped","table-hover","table-sm"]
+        )
         return ui.HTML(style + html)
+    
+    @output
+    @render.ui
+    def download_ui():
+        d = df_selected()
+        if d.empty:
+            return None
+        return ui.download_button("download", "Download CSV", class_="btn-primary btn-sm")
+    
+    @session.download(
+        id="download",
+        filename="crispresso2_analysis_results.csv")
+    def download():
+        d = df_selected()
+        if d.empty:
+            return None
+        yield d.to_csv(index=False)
 
     @output
     @render.ui
