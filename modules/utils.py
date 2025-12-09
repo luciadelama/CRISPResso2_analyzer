@@ -18,13 +18,24 @@ def extract_zip_to_tmp(zip_path: str):
     return tmp_dir
 
 def parse_fastq_metadata(name: str) -> Optional[Tuple[str, str]]:
-    m = re.match(r"^Day(?P<day>\d+)-[^-]+-(?:(?P<treat>[^-]+)-)?(?P<rep>\d+)_.*\.fastq\.gz$", name, re.IGNORECASE)
+    m = re.match(
+        r"^Day(?P<day>\d+)_"
+        r"(?:(?P<gen>[^_]+)_)?"
+        r"(?P<variant>[^_]+)_"
+        r"(?P<treat>[^_]+)_"
+        r"(?P<rep>\d+)"
+        r"(?P<rerun>_rerun)?"
+        r".*\.fastq(?:\.gz)?$", 
+        name, 
+        re.IGNORECASE
+        )
     if not m:
         return None
     day = m.group("day")
     rep = m.group("rep")
     treat = (m.group("treat") or "untreated").lower()
-    return f"Replica-{rep}", f"Day{day}_{treat}"
+    rerun = m.group("rerun")
+    return f"Replica-{rep}", f"Day{day}_{treat}_rerun" if rerun else f"Day{day}_{treat}"
 
 def reorganize_extracted_fastqs(tmp_path: Path):
     for p in Path(tmp_path).rglob("*.fastq.gz"):
@@ -42,11 +53,11 @@ def reorganize_extracted_fastqs(tmp_path: Path):
             except Exception:
                 pass
 
-def ensure_tmpdir(prefix="crispr_tmp_"):
-    """Creates and returns a TemporaryDirectory with a given prefix."""
-    d = tempfile.TemporaryDirectory(prefix=prefix)
-    # Keep a strong reference by attaching attribute so it doesn't GC; caller should hold it
-    return d
+# def ensure_tmpdir(prefix="crispr_tmp_"):
+#     """Creates and returns a TemporaryDirectory with a given prefix."""
+#     d = tempfile.TemporaryDirectory(prefix=prefix)
+#     # Keep a strong reference by attaching attribute so it doesn't GC; caller should hold it
+#     return d
 
 def list_replicates_from_outputs(outputs_root: Path):
     root = Path(outputs_root)

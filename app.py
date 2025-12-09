@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from shiny import App, render, ui, reactive
 
-from modules.utils import extract_zip_to_tmp, ensure_tmpdir, list_replicates_from_outputs, build_dfs_by_replicate, reorganize_extracted_fastqs, list_treatments_from_outputs
+from modules.utils import extract_zip_to_tmp, list_replicates_from_outputs, build_dfs_by_replicate, reorganize_extracted_fastqs, list_treatments_from_outputs
 from modules.runner import pair_fastqs, run_crispresso_parallel
 from modules import plots
 
