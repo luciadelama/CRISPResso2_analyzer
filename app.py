@@ -27,6 +27,7 @@ app_ui = ui.page_fluid(
                     placeholder="Use the browse button or drag and drop a file here",
                     width="60%"
                 ),
+                ui.help_text("Naming convention for the folders: Day<day>_[gen]_<variant>_<treatment>_<replicate>_[rerun]_...")
             ),
 
             ui.layout_columns(
